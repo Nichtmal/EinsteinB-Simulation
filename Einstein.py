@@ -129,8 +129,7 @@ def calculate_ESC(data, Z):
     B_lengths = [len(state['Bs']) for state in data['states']]
     if len(set(B_lengths)) > 1:
         raise ValueError("Inconsistent number of magnetic field values across states.")
-    print(data["states"][0]["n"])
-    print("Hello there")
+    # print(data["states"][0]["n"])
 
     for state in data['states']:
         print(state['Bs'].shape)
@@ -144,7 +143,7 @@ def calculate_ESC(data, Z):
         state1_attr = (state['n'], state['l'], state['j'], state['m_j'], state['base_energy'])
         state1 = state # Better readibility when multiple states are taken into account
         res_data = []
-        print(state['Bs'])
+        # print(state['Bs'])
         for i in range(len(state['Bs'])):
             print(i)
             B = state['Bs'][i]
