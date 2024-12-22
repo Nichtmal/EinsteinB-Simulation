@@ -8,7 +8,7 @@ from Einstein import calculate_ESC
 from interpretation import plot_einstein_coefficients
     
 # Connect to database
-database_file = '/mnt/c/Users/Tiago/Kreuzgasse Onedrive/Desktop/Tiago/Corona Aufgaben/Physik/GYPT Theorie/Database/Simulation_database.h5' # Use Linux convention to run from WSL
+database_file = 'path' # Use Linux convention to run from WSL
 
 # Splitting main into actions to only partially recompute values or scripts
 

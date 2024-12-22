@@ -412,10 +412,10 @@ def clear_database(database_file):
 
 
 if __name__ == "__main__":
-    database_file = '/mnt/c/Users/Tiago/Kreuzgasse Onedrive/Desktop/Tiago/Corona Aufgaben/Physik/GYPT Theorie/Database/Simulation_database.h5'
-    set_name = 'dim_10_0_res_0_08_conv_0_001_Na'
+    database_file = 'path'
+    set_name = 'dim_14_962499999999999_res_0_0875_conv_0_0001_Na+'
     if input("Clear database? ").lower() == "yes":
         if input("Are you sure you want to clear the database? ").lower() == "yes":
-            clear_database('/mnt/c/Users/Tiago/Kreuzgasse Onedrive/Desktop/Tiago/Corona Aufgaben/Physik/GYPT Theorie/Database/Simulation_database.h5')
+            clear_database('path')
     if input(f"Delete {set_name}? Yes / No ").lower() == "yes":
         del_corr_set(database_file, set_name)
