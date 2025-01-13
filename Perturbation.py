@@ -90,12 +90,12 @@ def perturbing(H, psi, eigenvalue, psi_pert, eigenvalue_pert, dx):
     else:
         try:
             print(f'works with {eigenvalue}, {eigenvalue_pert}, {(eigenvalue - eigenvalue_pert)/eigenvalue}')
-            perturbation_element = np.conj(psi) @ H @ psi_pert / ((eigenvalue_pert - eigenvalue) / e) * psi # Converting energies into SI units for this step
-            print(np.sqrt((np.sum(np.abs(perturbation_element)**2)*dx**3)))
+            perturbation_element = np.conj(psi_pert) @ H @ psi / ((eigenvalue_pert - eigenvalue) / e) * psi_pert # Converting energies into SI units for this step
+            norm = np.sqrt((np.sum(np.abs(perturbation_element)**2)*dx**3))
         except ValueError:
             print(f"Vector size: {psi_pert.size} \r Matrix size: {H.size}")
             raise ValueError
-        return perturbation_element
+        return perturbation_element / norm # Return normalized element
 
 def xi(r, Z_eff):
     factor = hbar * Z_eff * alpha / (2 * m_e**2 * c)
