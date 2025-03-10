@@ -1,6 +1,8 @@
 import numpy as np
 import scipy.sparse as sp
 import scipy
+import math
+
 from scipy.sparse.linalg import eigsh
 from scipy.sparse import diags as sp_diags
 from scipy import sparse
@@ -164,7 +166,15 @@ def SOC_perturbation(mls, s, Z_eff, r_grid):
     return H_SOC
 
 
-import scipy.sparse as sp
+def round_sig(x, sig=3):
+    """
+    Round a number x to sig significant figures.
+
+    """
+    if x == 0:
+        return 0
+    else:
+        return round(x, sig - int(math.floor(math.log10(abs(x)))) - 1)
 
 
 def truncate_sparse_matrix(A, n):
@@ -319,6 +329,8 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
     dim_grid = np.round(wf_dim)
     r_grid = generate_radial_grid(int(dim_grid), L)
     B_res = Bs[1] - Bs[0]  # Assuming constant differences
+    [B[i] = round_sig(B[i], 5) for i in range(len(B))]
+    B = [round_sig(i, 5) for i in B]
 
     results = {
         "Z_eff": Z_eff,
@@ -398,9 +410,13 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
                                                 dx,
                                             )
                                 print(B)
+                                norm = np.sum(np.abs(psi + sum_down) ** 2) * dx**3
                                 psi_corr = (psi + sum_down) / np.sqrt(
-                                    (np.sum(np.abs(psi + sum_down) ** 2) * dx**3)
+                                    norm
                                 )  # Nomalizing the resulting functions
+                                # Debugging:
+                                print(norm)
+
                                 B_fields.append(B)
                                 Psis.append(psi_corr)
                         elif state["spin"] == 1:
