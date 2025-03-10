@@ -18,6 +18,8 @@ database_file = (
     "/../Database/Simulation_database.h5"  # Use Linux convention to run from WSL
 )
 
+database_file = "/mnt/c/Users/Tiago/Kreuzgasse Onedrive/Desktop/Tiago/Corona Aufgaben/Physik/GYPT Theorie/Database/Simulation_database.h5"
+
 # Split main into actions to only partially recompute values or scripts
 
 
@@ -39,12 +41,16 @@ def simulation(element, num_states=15, grid_spacing=0.1, dimension=15, conv=1e-4
 def main():
     # Define simulation parameters
     num_states = 10
-    grid_spacing = 0.0875
+    grid_spacing = 0.085
     dimension = 15
     conv = 1e-4
     Z_eff = 2.2  # Effective nuclear charge
     Z = 11
-    Bs = np.linspace(0, 0.5, 10)  # Magnetic field values for corrections
+    Bs = np.linspace(0, 0.5, 6)  # Magnetic field values for corrections
+    print(Bs)
+
+    # Limiting Transitions in the form of Active, n, l, s
+    desired_transitions = (False, (3, 3), (0, 1), None)
 
     # User inputs
     input1 = input(
@@ -76,6 +82,7 @@ def main():
 
     set_name = f"dim_{dimension}_res_{grid_spacing}_conv_{conv}"
     set_name = set_name.replace(".", "_")
+    print(set_name)
 
     # Perform wavefunction corrections
     if input3 == "yes":
@@ -90,14 +97,12 @@ def main():
         print("Wavefunction corrections saved to database.")
 
     if input4 == "yes":
-        data = import_corr_from_db(
-            f"corrected_{set_name}", database_file, atoms=["Na", "Na+"]
-        )
-        results = calculate_ESC(data, Z)
-        einstein_to_db(results, f"einstein_{set_name}", database_file)
+        data = import_corr_from_db(set_name, database_file, Bs, atoms=["Na", "Na+"])
+        results = calculate_ESC(data, Z, desired_transitions)
+        einstein_to_db(results, f"einstein_{set_name}_{len(Bs)}B", database_file)
 
     if input5 == "yes":
-        data = import_einstein_from_db(f"einstein_{set_name}", database_file)
+        data = import_einstein_from_db(f"einstein_{set_name}_{len(Bs)}B", database_file)
         plot_einstein_coefficients(data, scale="linear")
 
 

@@ -172,48 +172,53 @@ def corr_to_db(desired_states, Z_eff, Bs, set_name, Atom, database_file):
         results = correct_wavefunctions(data, length, desired_states, Z_eff, Bs)
 
         # Save corrected results back to the database
-        corr_group_name = f"corrected_{set_name}_{Atom}"
+        corr_group_name = f"corrected_{set_name}_{Atom}_{len(Bs)}B"
 
         n = results["states"][0]["wavefunctions"].shape[0]
         m = results["states"][0]["wavefunctions"].shape[1]
 
         if corr_group_name not in db["simulations"]:
             corr_group = db["simulations"].create_group(corr_group_name)
-            corr_group.attrs.update(
-                {
-                    "Z_eff": results["Z_eff"],
-                    "dimension": results["dimension"],
-                    "resolution": results["resolution"],
-                    "B_range": results["B_range"],
-                    "B_res": results["B_res"],
-                    "states": [],
-                }
-            )
-
-            # Initialize empty datasets for corrected states with proper dtypes
-            corr_group.create_dataset("n", shape=(0,), maxshape=(None,), dtype="i4")
-            corr_group.create_dataset("l", shape=(0,), maxshape=(None,), dtype="i4")
-            corr_group.create_dataset("j", shape=(0,), maxshape=(None,), dtype="i4")
-            corr_group.create_dataset("m_j", shape=(0,), maxshape=(None,), dtype="i4")
-            corr_group.create_dataset(
-                "Bs",
-                shape=(0,),
-                maxshape=(None,),
-                dtype=h5py.special_dtype(vlen=np.dtype("float64")),
-            )
-            corr_group.create_dataset(
-                "wavefunctions",
-                shape=(0, n, m),
-                maxshape=(None, n, m),
-                dtype="complex128",
-            )
-            corr_group.create_dataset(
-                "base_energy", shape=(0,), maxshape=(None,), dtype="float64"
-            )
 
         else:
-            print(f"Corrected dataset '{corr_group_name}' already exists.")
-            corr_group = db["simulations"][corr_group_name]
+            print(
+                f"Corrected dataset '{corr_group_name}' already exists. Replacing dataset..."
+            )
+            # Replace dataset
+            del_corr_set(database_file, f"{set_name}_{Atom}_{len(Bs)}B")
+            corr_group = db["simulations"].create_group(corr_group_name)
+
+        corr_group.attrs.update(
+            {
+                "Z_eff": results["Z_eff"],
+                "dimension": results["dimension"],
+                "resolution": results["resolution"],
+                "B_range": results["B_range"],
+                "B_res": results["B_res"],
+                "states": [],
+            }
+        )
+
+        # Initialize empty datasets for corrected states with proper dtypes
+        corr_group.create_dataset("n", shape=(0,), maxshape=(None,), dtype="i4")
+        corr_group.create_dataset("l", shape=(0,), maxshape=(None,), dtype="i4")
+        corr_group.create_dataset("j", shape=(0,), maxshape=(None,), dtype="i4")
+        corr_group.create_dataset("m_j", shape=(0,), maxshape=(None,), dtype="i4")
+        corr_group.create_dataset(
+            "Bs",
+            shape=(0,),
+            maxshape=(None,),
+            dtype=h5py.special_dtype(vlen=np.dtype("float64")),
+        )
+        corr_group.create_dataset(
+            "wavefunctions",
+            shape=(0, n, m),
+            maxshape=(None, n, m),
+            dtype="complex128",
+        )
+        corr_group.create_dataset(
+            "base_energy", shape=(0,), maxshape=(None,), dtype="float64"
+        )
 
         # Append data to datasets
         for state in results["states"]:
@@ -238,8 +243,8 @@ def corr_to_db(desired_states, Z_eff, Bs, set_name, Atom, database_file):
             corr_group["j"][-1] = state["j"]
             corr_group["m_j"][-1] = state["m_j"]
             corr_group["Bs"][-1] = bs_array
-            print(corr_group["wavefunctions"][0])
-            print(wavefunctions_array)
+            # print(corr_group["wavefunctions"][0])
+            # print(wavefunctions_array)
             corr_group["wavefunctions"][-1] = wavefunctions_array
             corr_group["base_energy"][-1] = state["base_energy"]
 
@@ -248,7 +253,7 @@ def corr_to_db(desired_states, Z_eff, Bs, set_name, Atom, database_file):
         print(f"Selected wavefunction: {results['states'][0]['wavefunctions']}")
 
 
-def import_corr_from_db(set_name1, database_file, atoms):
+def import_corr_from_db(set_name1, database_file, Bs, atoms):
     """
     Import corrected results from the database.
 
@@ -273,7 +278,7 @@ def import_corr_from_db(set_name1, database_file, atoms):
 
     states = []
     for atom in atoms:
-        set_name = f"{set_name1}_{atom}"
+        set_name = f"corrected_{set_name1}_{atom}_{len(Bs)}B"
         print(set_name)
         with h5py.File(database_file, "r") as db:
             if "simulations" not in db or set_name not in db["simulations"]:
@@ -386,34 +391,37 @@ def einstein_to_db(data, set_name, database_file):
                             ]
                         }
     """
-    with h5py.File(database_file, "a") as db:
-        if set_name not in db:
-            table_group = db.create_group(set_name)
-            # Save metadata as attributes
-            table_group.attrs["resolution"] = data["resolution"]
-            table_group.attrs["B_range"] = data["B_range"]
-            table_group.attrs["B_res"] = data["B_res"]
 
-            # Initialize datasets
-            table_group.create_dataset(
-                "initial_state",
-                shape=(0,),
-                maxshape=(None,),
-                dtype=h5py.vlen_dtype(str),
-            )
-            table_group.create_dataset(
-                "resulting_state",
-                shape=(0,),
-                maxshape=(None,),
-                dtype=h5py.vlen_dtype(str),
-            )
-            table_group.create_dataset("E12", shape=(0,), maxshape=(None,), dtype="f8")
-            table_group.create_dataset(
-                "delta_E", shape=(0,), maxshape=(None,), dtype="f8"
-            )
-            table_group.create_dataset("B", shape=(0,), maxshape=(None,), dtype="f8")
+    with h5py.File(database_file, "a") as db:
+        if set_name not in db["simulations"]:
+            table_group = db["simulations"].create_group(set_name)
         else:
-            table_group = db[set_name]
+            del db["simulations"][set_name]
+            table_group = db["simulations"].create_group(set_name)
+
+        # Save metadata as attributes
+        table_group.attrs["resolution"] = data["resolution"]
+        table_group.attrs["B_range"] = data["B_range"]
+        table_group.attrs["B_res"] = data["B_res"]
+
+        # Initialize datasets
+        table_group.create_dataset(
+            "initial_state",
+            shape=(0,),
+            maxshape=(None,),
+            dtype=h5py.vlen_dtype(str),
+        )
+        table_group.create_dataset(
+            "resulting_state",
+            shape=(0,),
+            maxshape=(None,),
+            dtype=h5py.vlen_dtype(str),
+        )
+        table_group.create_dataset("E12", shape=(0,), maxshape=(None,), dtype="int32")
+        table_group.create_dataset(
+            "delta_E", shape=(0,), maxshape=(None,), dtype="int32"
+        )
+        table_group.create_dataset("B", shape=(0,), maxshape=(None,), dtype="f8")
 
         # Extract current sizes of datasets
         current_size = table_group["E12"].shape[0]
@@ -448,6 +456,10 @@ def import_einstein_from_db(set_name, database_file):
 
     Returns:
         dict: Dictionary with the retrieved data structured as:
+            'resolution': float
+            'B_range': list of floats
+            'B_res': float
+            'states':
               {
                   'initial_states': list of str,
                   'final_states': list of str,
@@ -457,13 +469,13 @@ def import_einstein_from_db(set_name, database_file):
               }
     """
     with h5py.File(database_file, "r") as db:
-        if set_name not in db:
+        if set_name not in db["simulations"]:
             raise ValueError(f"Set '{set_name}' not found in the database.")
 
-        table_group = db[set_name]
+        table_group = db["simulations"][set_name]
 
         # Load data into a dictionary
-        data = {
+        states = {
             "initial_states": [
                 state.decode("utf-8") for state in table_group["initial_state"]
             ],
@@ -474,6 +486,14 @@ def import_einstein_from_db(set_name, database_file):
             "delta_E": list(table_group["delta_E"]),
             "B": list(table_group["B"]),
         }
+
+        data = {
+            "resolution": table_group.attrs["resolution"],
+            "B_range": table_group.attrs["B_range"],
+            "B_res": table_group.attrs["B_res"],
+            "states": states,
+        }
+
     return data
 
 
@@ -532,6 +552,25 @@ def del_corr_set(database_file, set_name):
             print(f"Group '{corr_group_name}' does not exist in 'simulations'.")
 
 
+def del_einstein_set(database_file, set_name):
+    """
+    Deletes a selected set in the database
+
+    Parameters:
+        database_file (str): Path to the HDF5 file.
+        set_name (str): Name of the group (table) containing the data.
+    """
+    with h5py.File(database_file, "r+") as db:  # Open in read/write mode
+        simulations_group = db
+        einstein_group_name = f"einstein_{set_name}"  # The name of the group to delete
+
+        if einstein_group_name in simulations_group:
+            del simulations_group[einstein_group_name]
+            print(f"Group '{einstein_group_name}' has been deleted from 'simulations'.")
+        else:
+            print(f"Group '{einstein_group_name}' does not exist in 'simulations'.")
+
+
 def clear_database(database_file):
     """
     Clears all groups and datasets from the HDF5 database file.
@@ -547,10 +586,13 @@ def clear_database(database_file):
 
 
 if __name__ == "__main__":
-    database_file = "path"
-    set_name = "dim_14_962499999999999_res_0_0875_conv_0_0001_Na+"
+    database_file = "/mnt/c/Users/Tiago/Kreuzgasse Onedrive/Desktop/Tiago/Corona Aufgaben/Physik/GYPT Theorie/Database/Simulation_database.h5"
+    set_name = "dim_14_962499999999999_res_0_0875_conv_0_0001_Na_6B"
+    set_name_e = "dim_14_962499999999999_res_0_0875_conv_0_0001"
     if input("Clear database? ").lower() == "yes":
         if input("Are you sure you want to clear the database? ").lower() == "yes":
             clear_database("path")
     if input(f"Delete {set_name}? Yes / No ").lower() == "yes":
         del_corr_set(database_file, set_name)
+    if input(f"Delete Einstein coefficients? ").lower() == "yes":
+        del_einstein_set(database_file, set_name_e)

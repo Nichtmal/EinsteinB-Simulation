@@ -14,8 +14,8 @@ from scipy.constants import (
     c,
 )
 
-# Defining simulation parameters
-Z_eff = 1  # Effective nuclear charge
+# Defining simulation parameters for specific
+Z_eff = 2.2  # Effective nuclear charge
 B = 0  # Magnetic field strength in Tesla
 n = 3  # Principal quantum number
 l = 0  # Azimuthal quantum number
@@ -109,8 +109,6 @@ def Zeeman_perturbation(mls, s, grid):
 
 
 def perturbing(H, psi, eigenvalue, psi_pert, eigenvalue_pert, dx):
-    psi = psi / np.sqrt(np.sum(np.abs(psi) ** 2) * dx**3)
-    psi_pert = psi_pert / np.sqrt(np.sum(np.abs(psi_pert) ** 2) * dx**3)
     if np.isclose(
         eigenvalue - eigenvalue_pert, 0
     ).any():  # Prevent division by zero for degenerate states
@@ -399,6 +397,7 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
                                                 eigenvalue_pert,
                                                 dx,
                                             )
+                                print(B)
                                 psi_corr = (psi + sum_down) / np.sqrt(
                                     (np.sum(np.abs(psi + sum_down) ** 2) * dx**3)
                                 )  # Nomalizing the resulting functions
@@ -427,9 +426,11 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
                                                 eigenvalue_pert,
                                                 dx,
                                             )
-                                psi_corr = (psi + sum_up) / np.sqrt(
+                                norm_corr = np.sqrt(
                                     (np.sum(np.abs(psi + sum_up) ** 2) * dx**3)
                                 )
+                                print(norm_corr)
+                                psi_corr = (psi + sum_up) / norm_corr
                                 B_fields.append(B)
                                 Psis.append(psi_corr)
                         else:

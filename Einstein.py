@@ -24,13 +24,6 @@ def ESC_12(state1, state2, r_grid, dx, g1=1, g2=1):
     return g2 / g1 * Efactor * np.abs(integral) ** 2
 
 
-# Calculate the absorbtion coefficient as a function of the frequency
-def abs_coeff(B12, delta_E, T, f_nu, nu, n_1=1):
-    dE = abs(delta_E)
-    beta = k * T
-    return n_1 * B12 * hbar / 2 * (1 - np.exp(-dE * beta)) * nu * f_nu
-
-
 def is_transition_allowed(state1, state2):
     """
     Determine if an electric dipole transition is allowed between two states
@@ -61,17 +54,65 @@ def is_transition_allowed(state1, state2):
     )
 
     if abs(l1 - l2) > 1 or (l1 == 0 and l2 == 0):
+        # print("Ls dont match")
+        # print(l1, l2)
         return False
 
     if abs(j1 - j2) > 1:
+        # print("Js dont match")
+        # print(j1, j2)
         return False
 
     if abs(mj1 - mj2) > 1:
+        print("Ms dont match")
         return False
 
     if s1 != s2:
+        # print("Ss dont match")
+        # print(s1, s2)
         return False
+    return True
 
+
+def is_transition_desired(state1, state2, desired_transitions):
+    """
+    Determine if the transition is desired or not relevant to the problem
+
+    Returns Bool
+
+    """
+
+    # Extract quantum numbers for initial and final states
+    n1, l1, s1, j1, mj1 = (
+        state1["n"],
+        state1["l"],
+        state1["s"],
+        state1["j"],
+        state1["m_j"],
+    )
+    n2, l2, s2, j2, mj2 = (
+        state2["n"],
+        state2["l"],
+        state2["s"],
+        state2["j"],
+        state2["m_j"],
+    )
+
+    if desired_transitions[0] == False:
+        return True
+    else:
+        if type(desired_transitions[1]) != None:
+            if (n1, n2) != desired_transitions[1]:
+                return False
+        if type(desired_transitions[2]) != None:
+            if (l1, l2) != desired_transitions[2]:
+                return False
+            else:
+                print(f"States: {(l1, l2)}")
+        if type(desired_transitions[3]) != None:
+            if (s1, s2) != desired_transitions[3]:
+                return False
+    print("Desired!")
     return True
 
 
@@ -109,7 +150,7 @@ def delta_Ef(state_attr1, state_attr2, B, Z):
     )  # In eV
 
 
-def calculate_ESC(data, Z):
+def calculate_ESC(data, Z, desired_transitions):
     """
     Data has states with structure:
     'n': integer
@@ -133,7 +174,6 @@ def calculate_ESC(data, Z):
     delta_E: positive float
     B: float
     """
-    print(data)
     points_n = int(np.round(data["states"][0]["wavefunctions"].shape[1] ** (1 / 3)))
 
     dx = data["resolution"] * A  # Convert to meters for the integral
@@ -142,10 +182,6 @@ def calculate_ESC(data, Z):
     x_max = float(0.5 * dx * points_n)
     print(f"X_max: {x_max}")
 
-    # x = np.linspace(-x_max, x_max, points_n)
-    # y = np.linspace(-x_max, x_max, points_n)
-    # z = np.linspace(-x_max, x_max, points_n)
-    # X, Y, Z = np.meshgrid(x, y, z, indexing="ij", sparse=False)
     print(points_n)
     r_grid = generate_radial_grid(points_n, 2 * x_max)
 
@@ -160,37 +196,23 @@ def calculate_ESC(data, Z):
     B_lengths = [len(state["Bs"]) for state in data["states"]]
     if len(set(B_lengths)) > 1:
         raise ValueError("Inconsistent number of magnetic field values across states.")
-    # print(data["states"][0]["n"])
 
     for state in data["states"]:
-        print(state["Bs"].shape)
-        print(state["wavefunctions"].shape)
 
-        wave = state["wavefunctions"][0] / np.sqrt(
-            (np.sum(np.abs(state["wavefunctions"][0]) ** 2) * dx**3)
-        )
-        print(f"Test integral (has to be 1): {integral_f(wave, wave, 1, dx)}")
-
-        wave = state["wavefunctions"][0] / np.sqrt(
-            integral_f(state["wavefunctions"][0], state["wavefunctions"][0], 1, dx)
-        )
-        print(f"Test integral (has to be 1): {integral_f(wave, wave, 1, dx)}")
-        state1_attr = (
-            state["n"],
-            state["l"],
-            state["j"],
-            state["m_j"],
-            state["base_energy"],
-        )
         state1 = state  # Better readibility when multiple states are taken into account
+        state1_attr = (
+            state1["n"],
+            state1["l"],
+            state1["j"],
+            state1["m_j"],
+            state1["base_energy"],
+        )
+
+        a = 0
 
         for i in range(len(state["Bs"])):
-            print(i)
-            B = state["Bs"][i]
-            print(state["Bs"].shape)
-            print(state["wavefunctions"].shape)
-            psi_1 = state["wavefunctions"][i]
-            print("Stuff")
+            B = state1["Bs"][i]
+            psi_1 = state1["wavefunctions"][i]
             for state2 in data["states"]:
                 state2_attr = (
                     state2["n"],
@@ -200,18 +222,23 @@ def calculate_ESC(data, Z):
                     state2["base_energy"],
                 )
                 psi_2 = state2["wavefunctions"][i]
-                if is_transition_allowed(state1, state2):
-                    print("Transition")
-                    delta_E = delta_Ef(state1_attr, state2_attr, B, Z)
-                    if abs(delta_E) > 0:
-                        E = ESC_12(psi_1, psi_2, r_grid, dx)
-                        R = {
-                            "initial_state": state1_attr,
-                            "resulting_state": state2_attr,
-                            "E12": E,
-                            "delta_E": delta_E,  # In eV
-                            "B": B,
-                        }
-                        results["states"].append(R)
+                if is_transition_desired(state1, state2, desired_transitions):
+                    if is_transition_allowed(state1, state2):
+                        a += 1
+                        delta_E = delta_Ef(state1_attr, state2_attr, B, Z)
+                        if abs(delta_E) > 0:
+                            E = ESC_12(psi_1, psi_2, r_grid, dx)
+                            print(E)
+                            R = {
+                                "initial_state": state1_attr,
+                                "resulting_state": state2_attr,
+                                "E12": E,
+                                "delta_E": delta_E,  # In eV
+                                "B": B,
+                            }
+                            if R in results["states"]:
+                                print("Same same")
+                            results["states"].append(R)
+    print(f"Amount of Transitions: {a}")
     print("Einsteincoefficients calculated")
     return results

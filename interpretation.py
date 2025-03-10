@@ -1,5 +1,4 @@
 import numpy as np
-import scipy as sp
 import matplotlib.pyplot as plt
 
 
@@ -23,55 +22,76 @@ def plot_einstein_coefficients(data, scale="linear"):
         scale (str): Scale for the axes, 'linear' or 'log'.
     """
     # Initialize a list of states with grouped data
+    print(f"Magnetic field resolution: {data["B_res"]} T")
+    num_entries = len(data["states"]["initial_states"])
+
+    states_data = data["states"]
+    num_entries = len(states_data["initial_states"])
+    formatted_states = [
+        {
+            "initial_state": states_data["initial_states"][i],
+            "final_state": states_data["final_states"][i],
+            "E12": states_data["E12"][i],
+            "B": states_data["B"][i],
+            "delta_E": states_data["delta_E"][i],
+        }
+        for i in range(num_entries)
+    ]
+
     states = []
-    num_entries = len(data["initial_states"])
+    debug_list = []
+    for entry in formatted_states:
+        initial_state = entry["initial_state"]
+        final_state = entry["final_state"]
+        E12 = entry["E12"]
 
-    for i in range(num_entries):
-        # Parse initial and final states
-        initial_state = data["initial_states"][i]
-        final_state = data["final_states"][i]
-        E12 = data["E12"][i]
-
-        # Check if the transition already exists in the list
-        existing_state = next(
-            (
-                s
-                for s in states
-                if s["initial_state"] == initial_state
-                and s["final_state"] == final_state
-            ),
-            None,
-        )
-
-        if E12 > 0:
+        if E12 > 1:  # Filter valid transitions by defining a threshhold
+            existing_state = next(
+                (
+                    s
+                    for s in states
+                    if s["initial_state"] == initial_state
+                    and s["final_state"] == final_state
+                ),
+                None,
+            )
             if existing_state is None:
-                # Add a new transition
+                # Add new transition group
+                print("New state!")
                 states.append(
                     {
                         "initial_state": initial_state,
                         "final_state": final_state,
-                        "Bs": [data["B"][i]],
-                        "E12": [data["E12"][i]],
-                        "delta_E": [data["delta_E"][i]],
+                        "Bs": [entry["B"]],
+                        "E12": [E12],
+                        "delta_E": [entry["delta_E"]],
                     }
                 )
+                debug_list.append((initial_state, final_state))
             else:
-                # Update the existing transition
-                existing_state["Bs"].append(data["B"][i])
-                existing_state["E12"].append(data["E12"][i])
-                existing_state["delta_E"].append(data["delta_E"][i])
+                # Append data to the existing group
+                if False:
+                    pass
+                elif entry["B"] not in existing_state["Bs"]:
+                    print(entry["B"])
+                    existing_state["Bs"].append(entry["B"])
+                    existing_state["E12"].append(E12)
+                    existing_state["delta_E"].append(entry["delta_E"])
+        else:
+            print(f"Skip with E12 = {E12}")
+    print(debug_list)
 
-    print("Getting to plot")
-
-    for idx, state in enumerate(states):
+    for state in states:
         plt.figure(figsize=(10, 6))
 
         B_values = np.array(state["Bs"])
         E12_values = np.array(state["E12"])
+        for i in E12_values:
+            print(i)
         E12_at_B0 = E12_values[0]
         print(E12_at_B0)
 
-        if E12_at_B0 <= 1:
+        if E12_at_B0 <= 0 or np.isclose(E12_at_B0, 0).any():
             print(
                 f"Skipping state {state['initial_state']} → {state['final_state']} due to zero or negative E12 at B = 0"
             )
@@ -89,6 +109,7 @@ def plot_einstein_coefficients(data, scale="linear"):
 
         B_values = np.array(B_values_new)
         E12_values_normalized = np.array(E12_values_normalized)
+        # print(E12_values_normalized[1])
 
         # Perform linear fit
         try:
@@ -120,7 +141,7 @@ def plot_einstein_coefficients(data, scale="linear"):
         )
 
         # Configure plot
-        label = f"Transition: n, l, j, m_j, E: {state['initial_state']} → {state['final_state']}\nSlope: {slope:.2e}"
+        label = f"Transition: n, l, j, m_j, E: {state['initial_state']} → {state['final_state']}\nSlope: {slope:.2e}, Initial E12: {E12_at_B0}"
         plt.title(label)
         plt.xlabel("Magnetic Field [T])")
         plt.ylabel("Relative B12 Einstein Coefficient")
