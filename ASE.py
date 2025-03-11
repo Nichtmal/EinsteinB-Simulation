@@ -33,7 +33,7 @@ def run_simulation(
         }
 
     """
-    atom_label = "Na+" if ionized else element
+    atom_label = f"{element}+" if ionized else element
     print(atom_label)
 
     # Define the atom

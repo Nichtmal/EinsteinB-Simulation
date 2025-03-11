@@ -259,9 +259,9 @@ def get_mj_values(l, s):
     :param spin: Spin quantum number (+0.5 or -0.5)
     :return: list of m_j values
     """
-    m_s = -abs(s)  # Spin projection
+    m_s = s  # Spin
 
-    m_l_values = np.arange(-l, l + 2)
+    m_l_values = np.arange(-l, l + 1)
 
     # Orbital magnetic quantum numbers
     m_j_values = [m_l + m_s for m_l in m_l_values]
@@ -329,8 +329,7 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
     dim_grid = np.round(wf_dim)
     r_grid = generate_radial_grid(int(dim_grid), L)
     B_res = Bs[1] - Bs[0]  # Assuming constant differences
-    [B[i] = round_sig(B[i], 5) for i in range(len(B))]
-    B = [round_sig(i, 5) for i in B]
+    Bs = [round_sig(i, 5) for i in Bs]
 
     results = {
         "Z_eff": Z_eff,
