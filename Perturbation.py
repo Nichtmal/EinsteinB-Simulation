@@ -111,6 +111,9 @@ def Zeeman_perturbation(mls, s, grid):
 
 
 def perturbing(H, psi, eigenvalue, psi_pert, eigenvalue_pert, dx):
+    # Debugging:
+    print(f"Delta E (in eV) = {eigenvalue - eigenvalue_pert}")
+
     if np.isclose(
         eigenvalue - eigenvalue_pert, 0
     ).any():  # Prevent division by zero for degenerate states
@@ -121,14 +124,14 @@ def perturbing(H, psi, eigenvalue, psi_pert, eigenvalue_pert, dx):
                 np.conj(psi_pert)
                 @ H
                 @ psi
-                / ((eigenvalue_pert - eigenvalue) / e)
+                / ((eigenvalue_pert - eigenvalue) / e)  # SI units
                 * psi_pert
             )  # Converting energies into SI units for this step
             norm = np.sqrt((np.sum(np.abs(perturbation_element) ** 2) * dx**3))
         except ValueError:
             print(f"Vector size: {psi_pert.size} \r Matrix size: {H.size}")
             raise ValueError
-        return perturbation_element / norm  # Return normalized element
+        return perturbation_element  # / norm  # Returnelement
 
 
 def xi(r, Z_eff):
