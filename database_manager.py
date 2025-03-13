@@ -417,10 +417,8 @@ def einstein_to_db(data, set_name, database_file):
             maxshape=(None,),
             dtype=h5py.vlen_dtype(str),
         )
-        table_group.create_dataset("E12", shape=(0,), maxshape=(None,), dtype="int32")
-        table_group.create_dataset(
-            "delta_E", shape=(0,), maxshape=(None,), dtype="int32"
-        )
+        table_group.create_dataset("E12", shape=(0,), maxshape=(None,), dtype="f8")
+        table_group.create_dataset("delta_E", shape=(0,), maxshape=(None,), dtype="f8")
         table_group.create_dataset("B", shape=(0,), maxshape=(None,), dtype="f8")
 
         # Extract current sizes of datasets
@@ -493,7 +491,6 @@ def import_einstein_from_db(set_name, database_file):
             "B_res": table_group.attrs["B_res"],
             "states": states,
         }
-
     return data
 
 

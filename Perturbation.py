@@ -110,10 +110,23 @@ def Zeeman_perturbation(mls, s, grid):
     return factor * truncate_sparse_matrix(sparse.kron(sparse.eye(dim), L_S), grid)
 
 
-def perturbing(H, psi, eigenvalue, psi_pert, eigenvalue_pert, dx):
-    # Debugging:
-    print(f"Delta E (in eV) = {eigenvalue - eigenvalue_pert}")
+def perturbing(H, psi, eigenvalue, psi_pert, eigenvalue_pert):
+    """
+    Perturb the given wave function psi with the wave function psi_pert using first-order perturbation theory.
 
+    Args:
+        H (_type_): Perturbing Hamiltonian
+        psi (_type_): Original wave function (eigenstate)
+        eigenvalue (_type_): Eigenvalue for the original wave function
+        psi_pert (_type_): Perturbing wave function (eigenstate)
+        eigenvalue_pert (_type_): Eigenvalue for the perturbing wave function
+
+    Raises:
+        ValueError: Is raised when eigenstate and matrix have incompatible dimensions
+
+    Returns:
+        np.array: The perturbed wave function (eigenstate)
+    """
     if np.isclose(
         eigenvalue - eigenvalue_pert, 0
     ).any():  # Prevent division by zero for degenerate states
@@ -124,14 +137,14 @@ def perturbing(H, psi, eigenvalue, psi_pert, eigenvalue_pert, dx):
                 np.conj(psi_pert)
                 @ H
                 @ psi
-                / ((eigenvalue_pert - eigenvalue) / e)  # SI units
+                / ((eigenvalue_pert - eigenvalue) * e)  # SI units
                 * psi_pert
             )  # Converting energies into SI units for this step
-            norm = np.sqrt((np.sum(np.abs(perturbation_element) ** 2) * dx**3))
         except ValueError:
             print(f"Vector size: {psi_pert.size} \r Matrix size: {H.size}")
             raise ValueError
-        return perturbation_element  # / norm  # Returnelement
+
+        return perturbation_element
 
 
 def xi(r, Z_eff):
@@ -161,7 +174,7 @@ def SOC_perturbation(mls, s, Z_eff, r_grid):
     L_S_expanded = sparse.kron(sparse.eye(dimension), L_dot_S)  # Expand L_dot_S
     L_S_expanded = truncate_sparse_matrix(
         L_S_expanded, r_len
-    )  # Truncate into grid space (should only delete a small fraction to ensure accuracy)
+    )  # Truncate into grid space while only deleting a small fraction to ensure accuracy
 
     radial_factor = sp.diags(xi(r_grid, Z_eff))  # Diagonal matrix in spatial grid
     H_SOC = radial_factor @ L_S_expanded  # Combine position and angular-spin bases
@@ -326,13 +339,13 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
     dx = grid_spacing * 1e-10
     wf_dim = data["states"][0]["wavefunction"].shape[0] ** (1 / 3)
     print(f"Dim grid: {dim_grid}")
-    print(f"Dim grid calculated: {L/dx}")
-    print(f"Dim grid cubed: {(L/dx)**3}")
+    print(f"Dim grid calculated: {L/dx * A}")
+    print(f"Dim grid cubed: {(L/dx * A)**3}")
     print(f"Wavefunction dimension: {wf_dim}")
     dim_grid = np.round(wf_dim)
     r_grid = generate_radial_grid(int(dim_grid), L)
     B_res = Bs[1] - Bs[0]  # Assuming constant differences
-    Bs = [round_sig(i, 5) for i in Bs]
+    Bs = [round_sig(i, 5) for i in Bs]  # Correct floating point errors
 
     results = {
         "Z_eff": Z_eff,
@@ -359,6 +372,8 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
         H_SOC_down = SOC_perturbation(m_ls, -1 / 2, Z_eff, r_grid)
         H_Zee_up = Zeeman_perturbation(m_js_down, 1 / 2, dim_grid**3)
         H_Zee_down = Zeeman_perturbation(m_js_up, -1 / 2, dim_grid**3)
+
+        print(f"Hamiltonian SOC: {H_SOC_up} \rHamiltonian Zeeman: {H_Zee_up}")
 
         used = []
 
@@ -411,13 +426,19 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
                                                 eigenvalue_pert,
                                                 dx,
                                             )
-                                print(B)
-                                norm = np.sum(np.abs(psi + sum_down) ** 2) * dx**3
+
+                                # Debugging
+                                print(f"B = {B} T")
+                                # print(f"Hamiltonian: {B * H_Zee_down}")
+                                norm_corr = np.sum(np.abs(psi + sum_down) ** 2) * dx**3
                                 psi_corr = (psi + sum_down) / np.sqrt(
-                                    norm
-                                )  # Nomalizing the resulting functions
-                                # Debugging:
-                                print(norm)
+                                    norm_corr
+                                )  # Nomalize the resulting functions
+                                print(
+                                    f"Relative norm in order of {np.sqrt(np.sum(np.abs(sum_down) ** 2) * dx**3 / norm_corr)}"
+                                )
+
+                                print(f"dx = {dx}")
 
                                 B_fields.append(B)
                                 Psis.append(psi_corr)
@@ -447,12 +468,15 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
                                 norm_corr = np.sqrt(
                                     (np.sum(np.abs(psi + sum_up) ** 2) * dx**3)
                                 )
-                                print(norm_corr)
+
                                 psi_corr = (psi + sum_up) / norm_corr
                                 B_fields.append(B)
                                 Psis.append(psi_corr)
                         else:
                             raise TypeError
+
+                        # Debugging
+                        print(norm_corr)
 
                         state_data = {
                             "n": n1,
