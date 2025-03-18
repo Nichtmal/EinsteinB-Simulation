@@ -88,7 +88,8 @@ def run_simulation(
             wf = wfs.get_wave_function(k=0, n=n, s=s)
             state_data = {
                 "eigenvalue": eigenvalues[n],
-                "wavefunction": wf / np.sqrt(np.sum(np.conj(wf) * wf) * dx**3),
+                # "wavefunction": wf / np.sqrt(np.sum(np.conj(wf) * wf) * dx**3),
+                "wavefunction": wf,
                 "number": n,
                 "spin": s,
                 "atom": atom_label,

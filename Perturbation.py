@@ -111,7 +111,9 @@ def Zeeman_perturbation(mls, s, grid):
     )
     factor = g * mu_B / hbar
     dim = np.ceil(grid / L_S.shape[0])
-    return factor * truncate_sparse_matrix(sparse.kron(sparse.eye(dim), L_S), grid)
+    return factor * truncate_sparse_matrix(
+        sparse.kron(sparse.eye(dim) / np.sqrt(dim), L_S), grid
+    )  # Normalizing I(dim) by its Frobenius norm sqrt(dimension)
 
 
 def perturbing(H, psi, eigenvalue, psi_pert, eigenvalue_pert, dx):
@@ -175,7 +177,9 @@ def SOC_perturbation(mls, s, Z_eff, r_grid):
 
     r_len = r_grid.shape[0]
     dimension = np.ceil(r_len / L_dot_S.shape[0])
-    L_S_expanded = sparse.kron(sparse.eye(dimension), L_dot_S)  # Expand L_dot_S
+    L_S_expanded = sparse.kron(
+        sparse.eye(dimension) / np.sqrt(dimension), L_dot_S
+    )  # Expand L_dot_S after normalizing the effect of Kronecker product on the norm
     L_S_expanded = truncate_sparse_matrix(
         L_S_expanded, r_len
     )  # Truncate into grid space while only deleting a small fraction to ensure accuracy
@@ -360,6 +364,7 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
         "states": [],
     }
 
+    # Normalizing all wavefunctions
     for i in range(len(data["states"])):
         data["states"][i]["wavefunction"] /= norm(data["states"][i]["wavefunction"], dx)
 
