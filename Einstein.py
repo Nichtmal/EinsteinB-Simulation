@@ -1,6 +1,6 @@
 from scipy.special import wofz
 import numpy as np
-from scipy.constants import hbar, alpha, c, k, e, m_e
+from scipy.constants import hbar, alpha, c, e, m_e
 
 from Perturbation import generate_radial_grid
 
@@ -8,10 +8,6 @@ A = 1e-10  # 1 Angstrom in m
 gamma = e / (2 * m_e)
 
 Efactor = 4 * np.pi * alpha * c / (3 * hbar)
-
-# Setup Voigt function, both constant for f_0 ~ f(B)
-delta_nu_D = 1.7e9  # Doppler FWHM (Hz)
-delta_nu_L = 3e9  # Pressure FWHM (Hz)
 
 
 def integral_f(state1, state2, r_grid, dx):
@@ -64,7 +60,7 @@ def is_transition_allowed(state1, state2):
         return False
 
     if abs(mj1 - mj2) > 1:
-        print("Ms dont match")
+        # print("Ms dont match")
         return False
 
     if s1 != s2:
@@ -125,8 +121,16 @@ def g_j(j, l, s):
 
 
 def h_j(j, l, n):
+    """
+    Computes factor for SOC energy difference
+
+    """
+    if n == 0:
+        raise ValueError
     return (
         (j * (j + 1) - l * (l + 1) - 3 / 4) / (l * (l + 1) * (l + 1 / 2)) / (4 * n**3)
+        if l != 0  # SOC only takes effect with l > 0
+        else 0
     )
 
 
@@ -137,8 +141,8 @@ def delta_Ef(state_attr1, state_attr2, B, Z):
     s2 = j2 - l2
     g_j1 = g_j(j1, l1, s1)
     g_j2 = g_j(j2, l2, s2)
-    h_j1 = g_j(j1, l1, n1)
-    h_j2 = g_j(j2, l2, n1)
+    h_j1 = h_j(j1, l1, n1)
+    h_j2 = h_j(j2, l2, n1)
 
     factor_SOC = m_e * c**2 * alpha**4 * Z**4
 
@@ -181,6 +185,7 @@ def calculate_ESC(data, Z, desired_transitions):
     gridsize = dx
     x_max = float(0.5 * dx * points_n)
     print(f"X_max: {x_max}")
+    print(f"dx = {dx}")
 
     print(points_n)
     r_grid = generate_radial_grid(points_n, 2 * x_max)
@@ -237,7 +242,7 @@ def calculate_ESC(data, Z, desired_transitions):
                                 "B": B,
                             }
                             if R in results["states"]:
-                                print("Same same")
+                                print(f"E12 already in results \rState:{R}")
                             results["states"].append(R)
     print(f"Amount of Transitions: {a}")
     print("Einsteincoefficients calculated")

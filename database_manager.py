@@ -202,8 +202,8 @@ def corr_to_db(desired_states, Z_eff, Bs, set_name, Atom, database_file):
         # Initialize empty datasets for corrected states with proper dtypes
         corr_group.create_dataset("n", shape=(0,), maxshape=(None,), dtype="i4")
         corr_group.create_dataset("l", shape=(0,), maxshape=(None,), dtype="i4")
-        corr_group.create_dataset("j", shape=(0,), maxshape=(None,), dtype="i4")
-        corr_group.create_dataset("m_j", shape=(0,), maxshape=(None,), dtype="i4")
+        corr_group.create_dataset("j", shape=(0,), maxshape=(None,), dtype="f8")
+        corr_group.create_dataset("m_j", shape=(0,), maxshape=(None,), dtype="f8")
         corr_group.create_dataset(
             "Bs",
             shape=(0,),
@@ -214,7 +214,7 @@ def corr_to_db(desired_states, Z_eff, Bs, set_name, Atom, database_file):
             "wavefunctions",
             shape=(0, n, m),
             maxshape=(None, n, m),
-            dtype="complex128",
+            dtype="c16",
         )
         corr_group.create_dataset(
             "base_energy", shape=(0,), maxshape=(None,), dtype="float64"
@@ -235,7 +235,7 @@ def corr_to_db(desired_states, Z_eff, Bs, set_name, Atom, database_file):
 
             # Convert data to Numpy arrays for consistency
             bs_array = np.asarray(state["Bs"], dtype="float64")
-            wavefunctions_array = np.asarray(state["wavefunctions"], dtype="complex64")
+            wavefunctions_array = np.asarray(state["wavefunctions"], dtype="c16")
 
             # Write data into the datasets
             corr_group["n"][-1] = state["n"]

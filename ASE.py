@@ -1,3 +1,4 @@
+import numpy as np
 from ase import Atoms
 from gpaw import GPAW
 from gpaw.utilities.ps2ae import PS2AE
@@ -35,6 +36,7 @@ def run_simulation(
     """
     atom_label = f"{element}+" if ionized else element
     print(atom_label)
+    dx = grid_spacing * 1e-10  # Integration element in SI units
 
     # Define the atom
     adjusted_dimension = (
@@ -83,9 +85,10 @@ def run_simulation(
 
     for n in range(num_states):
         for s in [0, 1]:
+            wf = wfs.get_wave_function(k=0, n=n, s=s)
             state_data = {
                 "eigenvalue": eigenvalues[n],
-                "wavefunction": wfs.get_wave_function(k=0, n=n, s=s),
+                "wavefunction": wf / np.sqrt(np.sum(np.conj(wf) * wf) * dx**3),
                 "number": n,
                 "spin": s,
                 "atom": atom_label,

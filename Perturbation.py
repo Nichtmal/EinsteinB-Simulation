@@ -52,6 +52,10 @@ def m_ls(l):
     return [m - l for m in range(2 * l + 1)]
 
 
+def norm(psi, dx):
+    return np.sqrt(np.sum(np.conj(psi) * psi) * dx**3)
+
+
 # Defining Operators
 def S_x(s):
     return s * hbar * sigma_x
@@ -110,16 +114,16 @@ def Zeeman_perturbation(mls, s, grid):
     return factor * truncate_sparse_matrix(sparse.kron(sparse.eye(dim), L_S), grid)
 
 
-def perturbing(H, psi, eigenvalue, psi_pert, eigenvalue_pert):
+def perturbing(H, psi, eigenvalue, psi_pert, eigenvalue_pert, dx):
     """
     Perturb the given wave function psi with the wave function psi_pert using first-order perturbation theory.
 
     Args:
-        H (_type_): Perturbing Hamiltonian
-        psi (_type_): Original wave function (eigenstate)
-        eigenvalue (_type_): Eigenvalue for the original wave function
-        psi_pert (_type_): Perturbing wave function (eigenstate)
-        eigenvalue_pert (_type_): Eigenvalue for the perturbing wave function
+        H (np.array): Perturbing Hamiltonian
+        psi (np.array): Original wave function (eigenstate)
+        eigenvalue (float): Eigenvalue for the original wave function
+        psi_pert (np.array): Perturbing wave function (eigenstate)
+        eigenvalue_pert (float): Eigenvalue for the perturbing wave function
 
     Raises:
         ValueError: Is raised when eigenstate and matrix have incompatible dimensions
@@ -356,6 +360,9 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
         "states": [],
     }
 
+    for i in range(len(data["states"])):
+        data["states"][i]["wavefunction"] /= norm(data["states"][i]["wavefunction"], dx)
+
     for d_state in desired_states:
         n_d, l_d = d_state
         print(n_d, l_d)
@@ -407,7 +414,7 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
                             j = j_down
                             for B in Bs:
                                 H_down = H_SOC_down + B * H_Zee_down
-                                sum_down = 0
+                                sum = 0
                                 for state2 in data["states"]:
                                     n, l = get_qn(state2["number"])
                                     spin = state2["spin"]
@@ -418,7 +425,7 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
                                             n,
                                             l,
                                         ) != d_state:  # Preventing degenerate states from acting on each other
-                                            sum_down += perturbing(
+                                            sum += perturbing(
                                                 H_down,
                                                 psi,
                                                 eigenvalue,
@@ -429,13 +436,14 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
 
                                 # Debugging
                                 print(f"B = {B} T")
-                                # print(f"Hamiltonian: {B * H_Zee_down}")
-                                norm_corr = np.sum(np.abs(psi + sum_down) ** 2) * dx**3
-                                psi_corr = (psi + sum_down) / np.sqrt(
+                                norm_corr = norm(psi + sum, dx)
+                                norm_psi = norm(psi, dx)
+                                print(f"Norm psi = {norm_psi}")
+                                psi_corr = (psi + sum) / np.sqrt(
                                     norm_corr
                                 )  # Nomalize the resulting functions
                                 print(
-                                    f"Relative norm in order of {np.sqrt(np.sum(np.abs(sum_down) ** 2) * dx**3 / norm_corr)}"
+                                    f"Relative norm in order of {norm(sum, dx) / norm_psi}"
                                 )
 
                                 print(f"dx = {dx}")
@@ -446,7 +454,7 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
                             j = j_up
                             for B in Bs:
                                 H_up = H_SOC_up + B * H_Zee_up
-                                sum_up = 0
+                                sum = 0
                                 for state2 in data["states"]:
                                     n, l = get_qn(state2["number"])
                                     spin = state2["spin"]
@@ -457,7 +465,7 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
                                             n,
                                             l,
                                         ) != d_state:  # Preventing degenerate states from acting on each other
-                                            sum_up += perturbing(
+                                            sum += perturbing(
                                                 H_up,
                                                 psi,
                                                 eigenvalue,
@@ -466,10 +474,10 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
                                                 dx,
                                             )
                                 norm_corr = np.sqrt(
-                                    (np.sum(np.abs(psi + sum_up) ** 2) * dx**3)
+                                    (np.sum(np.abs(psi + sum) ** 2) * dx**3)
                                 )
 
-                                psi_corr = (psi + sum_up) / norm_corr
+                                psi_corr = (psi + sum) / norm_corr
                                 B_fields.append(B)
                                 Psis.append(psi_corr)
                         else:
