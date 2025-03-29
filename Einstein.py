@@ -65,7 +65,6 @@ def is_transition_allowed(state1, state2):
 
     if s1 != s2:
         # print("Ss dont match")
-        # print(s1, s2)
         return False
     return True
 
@@ -187,7 +186,6 @@ def calculate_ESC(data, Z, desired_transitions):
     print(f"X_max: {x_max}")
     print(f"dx = {dx}")
 
-    print(points_n)
     r_grid = generate_radial_grid(points_n, 2 * x_max)
 
     results = {

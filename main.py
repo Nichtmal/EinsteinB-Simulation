@@ -46,7 +46,7 @@ def main():
     Z_eff = 2.2  # Effective nuclear charge
     Z = 11
     Bs = np.linspace(0, 0.5, 6)  # Magnetic field values for corrections
-    print(Bs)
+    print(f"Magnetic Field Strengths: {Bs}")
 
     # Limiting Transitions in the form of Active, n, l, s
     desired_transitions = (False, (3, 3), (0, 1), None)

@@ -385,8 +385,6 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
         H_Zee_up = Zeeman_perturbation(m_js_down, 1 / 2, dim_grid**3)
         H_Zee_down = Zeeman_perturbation(m_js_up, -1 / 2, dim_grid**3)
 
-        print(f"Hamiltonian SOC: {H_SOC_up} \rHamiltonian Zeeman: {H_Zee_up}")
-
         used = []
 
         for state in data["states"]:
@@ -443,16 +441,12 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
                                 print(f"B = {B} T")
                                 norm_corr = norm(psi + sum, dx)
                                 norm_psi = norm(psi, dx)
-                                print(f"Norm psi = {norm_psi}")
                                 psi_corr = (psi + sum) / np.sqrt(
                                     norm_corr
                                 )  # Nomalize the resulting functions
                                 print(
                                     f"Relative norm in order of {norm(sum, dx) / norm_psi}"
                                 )
-
-                                print(f"dx = {dx}")
-
                                 B_fields.append(B)
                                 Psis.append(psi_corr)
                         elif state["spin"] == 1:
@@ -487,9 +481,6 @@ def correct_wavefunctions(data, length, desired_states, Z_eff, Bs):
                                 Psis.append(psi_corr)
                         else:
                             raise TypeError
-
-                        # Debugging
-                        print(norm_corr)
 
                         state_data = {
                             "n": n1,
